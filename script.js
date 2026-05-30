@@ -155,10 +155,11 @@ async function loadCategories() {
 
 function renderOnboardingPresets() {
     const container = document.getElementById('onboarding-presets');
-    container.innerHTML = '';
+    let presetsHTML = '';
     presetCats.forEach(cat => {
-        container.innerHTML += `<button class="neo-btn secondary" style="padding: 8px 12px; font-size: 13px;" onclick="selectOnboardingPreset('${cat.name}', '${cat.icon}', '${cat.color}')">${cat.icon} ${cat.name}</button>`;
+        presetsHTML += `<button class="neo-btn secondary" style="padding: 8px 12px; font-size: 13px;" onclick="selectOnboardingPreset('${cat.name}', '${cat.icon}', '${cat.color}')">${cat.icon} ${cat.name}</button>`;
     });
+    container.innerHTML = presetsHTML;
 }
 
 function selectOnboardingPreset(name, icon, color) {
@@ -186,14 +187,15 @@ function removeOnboardingCat(index) {
 
 function renderSelectedOnboardingCats() {
     const container = document.getElementById('ob-selected-cats');
-    container.innerHTML = '';
+    let obHTML = '';
     onboardingCats.forEach((cat, idx) => {
-        container.innerHTML += `
+        obHTML += `
             <div class="cat-item" style="border-right-color: ${cat.color}; padding: 10px; margin-bottom: 5px;">
                 <span style="font-weight: 600; color: #fff; font-size: 13px;">${cat.icon} &nbsp; ${cat.name}</span>
                 <button class="del-cat-btn" onclick="removeOnboardingCat(${idx})" style="padding: 4px 8px;">حذف</button>
             </div>`;
     });
+    container.innerHTML = obHTML;
 }
 
 async function completeOnboarding() {
@@ -231,10 +233,11 @@ function updateCategoryDropdown(elementId) {
 
 function renderCategoryList() {
     const list = document.getElementById('categories-list');
-    list.innerHTML = '';
+    let catsHTML = '';
     userCategories.forEach(cat => {
-        list.innerHTML += `<div class="cat-item" style="border-right-color: ${cat.color}"><span style="font-weight: 600; color: #fff;">${cat.icon} &nbsp; ${escapeHTML(cat.name)}</span><button class="del-cat-btn" onclick="deleteCategory('${cat.id}')">حذف</button></div>`;
+        catsHTML += `<div class="cat-item" style="border-right-color: ${cat.color}"><span style="font-weight: 600; color: #fff;">${cat.icon} &nbsp; ${escapeHTML(cat.name)}</span><button class="del-cat-btn" onclick="deleteCategory('${cat.id}')">حذف</button></div>`;
     });
+    list.innerHTML = catsHTML;
 }
 
 async function addNewCategory() {
@@ -315,18 +318,29 @@ function generateTaskHTML(block, isFuture = false) {
 function renderBlocks() {
     currentBlocks.sort((a, b) => (b.is_pinned === a.is_pinned) ? 0 : b.is_pinned ? 1 : -1);
 
-    const container = document.getElementById('blocks-container'); container.innerHTML = '';
-    if(currentBlocks.length === 0) { container.innerHTML = '<div style="text-align: center; color: #a1a1aa; padding: 40px 20px; background: #18181b; border-radius: 16px; border: 1px dashed #3f3f46;">يومك رايق والسبورة فاضية.. استمتع بوقتك ✨</div>'; } 
-    else { currentBlocks.forEach(block => { container.innerHTML += generateTaskHTML(block, false); }); }
+    const container = document.getElementById('blocks-container'); 
+    if(currentBlocks.length === 0) { 
+        container.innerHTML = '<div style="text-align: center; color: #a1a1aa; padding: 40px 20px; background: #18181b; border-radius: 16px; border: 1px dashed #3f3f46;">يومك رايق والسبورة فاضية.. استمتع بوقتك ✨</div>'; 
+    } else { 
+        // التعديل هنا: تجميع الكود في متغير أولاً لمنع اللاج
+        let blocksHTML = '';
+        currentBlocks.forEach(block => { blocksHTML += generateTaskHTML(block, false); }); 
+        container.innerHTML = blocksHTML;
+    }
     updateProgressRing(); 
 
     const futureWrapper = document.getElementById('future-blocks-wrapper');
     const futureContainer = document.getElementById('future-blocks-container');
-    futureContainer.innerHTML = '';
+    
     if(futureBlocks.length > 0) {
         futureWrapper.style.display = 'block';
-        futureBlocks.forEach(block => { futureContainer.innerHTML += generateTaskHTML(block, true); });
-    } else { futureWrapper.style.display = 'none'; }
+        let futureHTML = '';
+        futureBlocks.forEach(block => { futureHTML += generateTaskHTML(block, true); });
+        futureContainer.innerHTML = futureHTML;
+    } else { 
+        futureWrapper.style.display = 'none'; 
+        futureContainer.innerHTML = '';
+    }
 }
 
 function toggleFutureTasks() {
