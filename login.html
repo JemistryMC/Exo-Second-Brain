@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Exo | بوابة الدخول</title>
+    <meta name="theme-color" content="#09090b">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="login-body">
+    <div class="ambient-glow"></div>
+    
+    <div class="login-wrapper">
+        <div class="login-card glass-panel">
+            <div class="login-header">
+                <h1>Exo <span>المركز</span></h1>
+                <p>مرحباً بعودتك إلى عقلك الثاني</p>
+            </div>
+            
+            <div class="input-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" id="email" class="neo-input full-width" placeholder="name@domain.com">
+            </div>
+            
+            <div class="input-group mt-15">
+                <label>كلمة المرور</label>
+                <input type="password" id="password" class="neo-input full-width" placeholder="••••••••">
+            </div>
+
+            <div id="error-msg" class="error-text"></div>
+
+            <div class="login-actions mt-15">
+                <button class="neo-btn primary full-width" onclick="login()" id="login-btn">تسجيل الدخول</button>
+                <button class="neo-btn secondary full-width mt-10" onclick="signUp()" id="signup-btn">إنشاء حساب جديد</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

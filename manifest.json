@@ -1,0 +1,17 @@
+{
+  "name": "Exo Second Brain",
+  "short_name": "Exo",
+  "description": "نظام الإنتاجية المرن",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

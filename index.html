@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Exo | Second Brain</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#09090b">
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="app-wrapper">
+        <header class="glass-header">
+            <div class="header-info">
+                <h1>Exo <span>المركز</span></h1>
+                <p id="current-date"></p>
+            </div>
+            <div class="header-stats">
+                <div class="streak-pill" id="streak-display" title="شعلة الاستمرارية">🔥 0</div>
+                <div class="progress-ring-container">
+                    <svg class="progress-svg" width="40" height="40">
+                        <circle stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="17" cx="20" cy="20"/>
+                        <circle id="progress-circle" stroke="url(#gradient)" stroke-width="3" fill="transparent" r="17" cx="20" cy="20" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#4facfe" />
+                                <stop offset="100%" stop-color="#00f2fe" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span id="progress-text">0%</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-container">
+            <!-- 1. شاشة المساعدة والدليل (باللهجة المصرية) -->
+            <main id="guide-section" class="tab-section active">
+                <div class="section-title-row">
+                    <h2>إيه هو Exo؟ 🧠</h2>
+                    <span class="sub-text">عقلك التاني (Second Brain)</span>
+                </div>
+                <div class="neo-card" style="margin-bottom: 30px;">
+                    <p style="color: var(--text-muted); line-height: 1.8; margin-top: 0; font-size: 14px;">
+                        أهلاً بيك! النظام ده مش مجرد نوتة تكتب فيها "ورايا كذا وكذا".. لأ، <strong>Exo متصمم عشان يفضيلك دماغك.</strong><br>
+                        الفكرة إننا نقلل "الزحمة في دماغك" (Cognitive Load) بإنك ترمي كل حاجة وراك هنا، والنظام هينظمهالك ويفكرك بيها، ويحلل إنجازك بالأرقام عشان تعرف إنت ماشي صح ولا محتاج تظبط خطتك.
+                    </p>
+                </div>
+
+                <div class="section-title-row">
+                    <h2>الدليل التشغيلي ⚙️</h2>
+                    <span class="sub-text">إزاي تطلع بأقصى استفادة من الموقع؟</span>
+                </div>
+
+                <!-- الشرح: المهام والتثبيت -->
+                <div class="neo-card" style="margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; color: var(--accent);">1. المهام وأهم زرار: التثبيت (Pin 📌)</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">كل مهمة بتضيفها بيكون ليها تصنيف ووقت عشان يومك ميتكعبلش. بس السر كله في <strong>زرار الدبوس (التثبيت)</strong>. الزرار ده بتستخدمه للمهام اللي بنسميها "Impact Tasks"، يعني المهام القوية اللي لو عملتها يومك كده هيبقى جاب همه ومفيد. التثبيت بيخليها فوق دايماً عشان عينك تفضل عليها.</p>
+                    
+                    <div class="task-card" id="demo-task-1" style="border-right-color: #10b981; margin-top: 15px;">
+                        <div class="task-content-wrapper">
+                            <label class="custom-checkbox">
+                                <input type="checkbox" onchange="document.getElementById('demo-task-1').classList.toggle('completed')">
+                                <span class="checkmark"></span>
+                            </label>
+                            <div class="task-details">
+                                <h3 class="task-title">مذاكرة الجزء الأصعب من المنهج</h3>
+                                <div class="task-meta"><span style="color: #10b981">📚 الدراسة</span><span>&bull;</span><span>10:00 ص</span></div>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="icon-action-btn" onclick="this.classList.toggle('active-pin'); document.getElementById('demo-task-1').classList.toggle('pinned')" title="جرب تدوس على الدبوس!">📌</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الشرح: التأجيل والتقسيم -->
+                <div class="neo-card" style="margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; color: var(--danger);">2. التأجيل (Shift) وميزة "التقسيم" السحرية</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">كلنا بنكسل ونأجل، وده عادي. النظام بيسمحلك تأجل (تعيد جدولة) لبكرة أو أي يوم تاني. <strong>لكن لو أجلت نفس المهمة 3 مرات</strong>، النظام هيحس إن المهمة دي تقيلة على قلبك (فيها مقاومة)، وهنا هيطلعلك تحذير أحمر وينصحك تستخدم زرار <strong>التقسيم</strong> بدل ما تأجل تاني! التقسيم بيكسر المهمة المعقدة لخطوات صغيرة تخلص في 10 دقايق.</p>
+                    
+                    <div id="demo-split-wrapper" style="margin-top: 15px;">
+                        <div class="task-card" id="demo-split-card" style="border-right-color: #ef4444;">
+                            <div class="task-content-wrapper">
+                                <label class="custom-checkbox"><input type="checkbox"><span class="checkmark"></span></label>
+                                <div class="task-details">
+                                    <h3 class="task-title">كتابة تقرير المشروع المعقد جداً</h3>
+                                    <div class="task-meta"><span style="color: #ef4444">💼 العمل</span><span>&bull;</span><span>بدون وقت</span></div>
+                                    <span class="danger-text">⚠️ تم التأجيل 3 مرات! (قسّم المهمة)</span>
+                                </div>
+                            </div>
+                            <div class="task-actions">
+                                <button class="shift-text-btn shift-danger" onclick="showNeoAlert('نصيحة أخوية 💡', 'المهمة دي بقيت تقيلة جداً وبتأجلها كتير! دوس على زرار التقسيم الأخضر عشان تكسرها لحتت أصغر وتقدر تخلصها.', 'danger')">تأجيل</button>
+                                <button class="shift-text-btn" onclick="triggerDemoSplit()" style="background: rgba(16, 185, 129, 0.1); color: #10b981; margin-right: 4px;">تقسيم</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الشرح: المراجعة الأسبوعية -->
+                <div class="neo-card" style="margin-bottom: 30px;">
+                    <h3 style="margin-top: 0; color: #f59e0b;">3. المراجعة الأسبوعية (وقفة مع النفس)</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">النظام كل يوم جمعة هيطلعلك شاشة يطلب منك تقيّم أسبوعك. دي مش محاكمة، دي عشان تقف مع نفسك وتشوف: إيه اللي أنجزته وتكافئ نفسك عليه، وإيه اللي محتاج يتعدل الأسبوع اللي جاي. (جرب تقيّم بالنجوم تحت).</p>
+                    <div class="rating-stars" id="demo-rating-stars">
+                        <span onclick="setDemoRating(1)">⭐</span>
+                        <span onclick="setDemoRating(2)">⭐</span>
+                        <span onclick="setDemoRating(3)">⭐</span>
+                        <span onclick="setDemoRating(4)">⭐</span>
+                        <span onclick="setDemoRating(5)">⭐</span>
+                    </div>
+                </div>
+
+                <!-- الشرح: الأرقام -->
+                <div class="section-title-row">
+                    <h2>الأرقام والإحصائيات 📊</h2>
+                    <span class="sub-text">إزاي تفهم أرقامك؟</span>
+                </div>
+
+                <div class="neo-card" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h4 style="margin: 0; color: #fff;">شعلة الحماس (Streak)</h4>
+                            <p style="margin: 5px 0 0; color: var(--text-muted); font-size: 12px; max-width: 200px;">الرقم ده بيكبر كل ما بتنجز مهام بشكل متواصل يوم ورا يوم. هدفك إن الشعلة دي متطفيش أبدًا! (جرب تدوس عليها عشان تزودها).</p>
+                        </div>
+                        <div class="streak-pill" style="font-size: 16px; padding: 10px 20px; cursor: pointer; user-select: none;" onclick="this.innerHTML = '🔥 ' + (parseInt(this.innerText.replace('🔥 ', '')) + 1)">🔥 12</div>
+                    </div>
+                    <hr style="border-color: var(--border); width: 100%; margin: 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h4 style="margin: 0; color: #fff;">دايرة الإنجاز (Progress Ring)</h4>
+                            <p style="margin: 5px 0 0; color: var(--text-muted); font-size: 12px; max-width: 200px;">بتبينلك إنت خلصت كام في المية من مهام النهاردة، عشان تديك دفعة تكمل الـ 100%. (شد الشريط اللي تحت ده وشوفها وهي بتكمل).</p>
+                            <input type="range" min="0" max="100" value="65" oninput="updateDemoProgress(this.value)" style="margin-top: 10px; width: 100%;">
+                        </div>
+                        <div class="progress-ring-container" style="width: 60px; height: 60px;">
+                            <svg class="progress-svg" width="60" height="60">
+                                <circle stroke="rgba(255,255,255,0.05)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30"/>
+                                <circle id="demo-progress-circle" stroke="url(#gradient)" stroke-width="4" fill="transparent" r="26" cx="30" cy="30" stroke-linecap="round" style="stroke-dasharray: 163.36; stroke-dashoffset: 57.17; transition: stroke-dashoffset 0.5s ease;"/>
+                            </svg>
+                            <span id="demo-progress-text" style="font-size: 14px;">65%</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 2. قسم المهام -->
+            <main id="tasks-section" class="tab-section" style="display: none;">
+                <div class="quick-add-panel">
+                    <input type="text" id="new-task-input" placeholder="وراك إيه النهاردة؟..." class="neo-input full-width" onkeypress="handleEnter(event)">
+                    <div class="quick-add-row">
+                        <select id="task-category" class="neo-input flex-2"></select>
+                        <input type="time" id="new-task-time" class="neo-input flex-1">
+                        <button class="neo-btn primary add-btn" onclick="addNewTask()">إضافة</button>
+                    </div>
+                </div>
+                
+                <div class="section-title-row">
+                    <h2>مهامك</h2>
+                    <span class="sub-text">ركز في اللحظة الحالية</span>
+                </div>
+                <div id="blocks-container" class="task-list"></div>
+
+                <div id="future-blocks-wrapper" style="display: none; margin-top: 35px;">
+                    <div class="section-title-row collapsible-header" onclick="toggleFutureTasks()">
+                        <div>
+                            <h2 style="margin: 0; font-size: 20px;">المهام المؤجلة 🗓️</h2>
+                            <span class="sub-text">مجدولة للأيام القادمة</span>
+                        </div>
+                        <button id="future-toggle-btn" class="icon-action-btn rotated" style="background: transparent; font-size: 18px;">🔽</button>
+                    </div>
+                    <div id="future-blocks-container" class="task-list collapsible-content collapsed"></div>
+                </div>
+            </main>
+
+            <!-- 3. قسم تحليل الأداء -->
+            <main id="analytics-section" class="tab-section" style="display: none;">
+                <div class="section-title-row"><h2>تحليل الأداء</h2></div>
+                <div class="neo-card chart-card"><canvas id="statsChart"></canvas></div>
+            </main>
+
+            <!-- 4. قسم الإعدادات والنظام -->
+            <main id="settings-section" class="tab-section" style="display: none;">
+                <div class="section-title-row"><h2>نظام التصنيفات</h2></div>
+                <div class="neo-card">
+                    <div class="add-cat-row">
+                        <input type="text" id="new-cat-name" placeholder="التصنيف الجديد (مثال: شغل، دراسة)" class="neo-input flex-2">
+                        <input type="text" id="new-cat-icon" placeholder="🎨" class="neo-input flex-1 icon-input">
+                        <input type="color" id="new-cat-color" value="#4facfe" class="neo-color">
+                        <button class="neo-btn primary icon-btn" onclick="addNewCategory()">+</button>
+                    </div>
+                    <div id="categories-list" class="cat-list"></div>
+                </div>
+                <button onclick="logout()" class="neo-btn danger full-width logout-btn">تسجيل الخروج</button>
+            </main>
+        </div>
+    </div>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="floating-nav">
+        <button class="nav-item active" id="tab-guide" onclick="switchTab('guide')"><span class="nav-icon">💡</span><span class="nav-text">الدليل</span></button>
+        <button class="nav-item" id="tab-tasks" onclick="switchTab('tasks')"><span class="nav-icon">✨</span><span class="nav-text">المهام</span></button>
+        <button class="nav-item" id="tab-analytics" onclick="switchTab('analytics')"><span class="nav-icon">📊</span><span class="nav-text">الأداء</span></button>
+        <button class="nav-item" id="tab-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span><span class="nav-text">النظام</span></button>
+    </nav>
+
+    <!-- Modal تأجيل المهمة -->
+    <div id="shift-modal" class="neo-modal">
+        <div class="modal-body">
+            <h3>هتأجلها لإمتى؟ ⏳</h3>
+            <input type="date" id="shift-date" class="neo-input full-width mt-15">
+            <div class="modal-actions mt-15">
+                <button class="neo-btn secondary flex-1" onclick="closeModal('shift-modal')">إلغاء</button>
+                <button class="neo-btn primary flex-1" onclick="confirmShift()">تأكيد التأجيل</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal تعديل المهمة -->
+    <div id="edit-modal" class="neo-modal">
+        <div class="modal-body">
+            <h3>تعديل المهمة ✏️</h3>
+            <input type="text" id="edit-task-title" class="neo-input full-width mt-15" placeholder="اسم المهمة">
+            <input type="date" id="edit-task-date" class="neo-input full-width mt-10" title="تاريخ المهمة">
+            <div class="quick-add-row mt-10">
+                <select id="edit-task-category" class="neo-input flex-2"></select>
+                <input type="time" id="edit-task-time" class="neo-input flex-1" title="اتركه فارغاً للاحتفاظ بالوقت القديم">
+            </div>
+            <div class="modal-actions mt-15">
+                <button class="neo-btn secondary flex-1" onclick="closeModal('edit-modal')">إلغاء</button>
+                <button class="neo-btn primary flex-1" onclick="confirmEdit()">حفظ التعديلات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ميزة تقسيم المهمة -->
+    <div id="split-modal" class="neo-modal">
+        <div class="modal-body">
+            <h3>تقسيم المهمة 🔗</h3>
+            <p id="split-task-parent-title" style="color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 15px;"></p>
+            <div id="subtasks-inputs-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- سيتولد هنا المدخلات ديناميكياً -->
+            </div>
+            <button class="neo-btn secondary full-width mt-10" onclick="addSubtaskInputField()" style="padding: 8px; font-size: 13px;">+ زود خطوة كمان</button>
+            <div class="modal-actions mt-15">
+                <button class="neo-btn secondary flex-1" onclick="closeModal('split-modal')">إلغاء</button>
+                <button class="neo-btn primary flex-1" onclick="confirmSplitTask()">قسّم وكسر الكسل 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal المراجعة الأسبوعية -->
+    <div id="weekly-review-modal" class="neo-modal">
+        <div class="modal-body">
+            <h3>وقفة مع النفس 🎯</h3>
+            <p>النهاردة الجمعة.. إزاي تقيم أداءك والتزامك الأسبوع ده؟</p>
+            <div class="rating-stars" id="rating-stars">
+                <span onclick="setRating(1)">⭐</span>
+                <span onclick="setRating(2)">⭐</span>
+                <span onclick="setRating(3)">⭐</span>
+                <span onclick="setRating(4)">⭐</span>
+                <span onclick="setRating(5)">⭐</span>
+            </div>
+            <input type="hidden" id="review-rating" value="0">
+            <textarea id="review-notes" class="neo-input full-width mt-15" placeholder="اكتب هنا إيه الحلو اللي أنجزته، وإيه اللي أثرت فيه ومحتاج تصلحه الأسبوع الجاي..." rows="3"></textarea>
+            <button class="neo-btn primary full-width mt-15" onclick="submitWeeklyReview()" id="review-btn">حفظ التقييم وابدأ أسبوع جديد</button>
+        </div>
+    </div>
+
+    <!-- Modal Onboarding للمستخدم الجديد -->
+    <div id="onboarding-modal" class="neo-modal" style="background: rgba(9, 9, 11, 0.95);">
+        <div class="modal-body" style="max-width: 500px;">
+            <h2 style="color: var(--accent); margin-top: 0; font-size: 28px;">أهلاً بيك في Exo 🧠</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px; line-height: 1.6;">يلا نبني عقلك التاني مع بعض. إيه هي أهم المجالات في حياتك اللي عايز تركز عليها؟ (اختار تصنيف واحد على الأقل)</p>
+            <div id="onboarding-presets" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: center;"></div>
+            <div class="add-cat-row mt-15">
+                <input type="text" id="ob-cat-name" placeholder="أو اكتب تصنيف من دماغك..." class="neo-input flex-2">
+                <input type="text" id="ob-cat-icon" placeholder="🎯" class="neo-input flex-1 icon-input">
+                <input type="color" id="ob-cat-color" value="#4facfe" class="neo-color">
+                <button class="neo-btn secondary icon-btn" onclick="addCustomOnboardingCat()">+</button>
+            </div>
+            <div id="ob-selected-cats" class="cat-list mt-15" style="text-align: right; max-height: 180px; overflow-y: auto;"></div>
+            <button class="neo-btn primary full-width mt-15" onclick="completeOnboarding()" id="start-journey-btn">ابدأ الرحلة 🚀</button>
+        </div>
+    </div>
+
+    <!-- 🌟 النوافذ المنبثقة الجديدة لتنبيهات النظام بدل الـ Alert و الـ Confirm 🌟 -->
+    
+    <!-- Custom Alert Modal -->
+    <div id="neo-alert-modal" class="neo-modal" style="z-index: 9999;">
+        <div class="modal-body" style="max-width: 350px; padding: 25px;">
+            <h3 id="neo-alert-title" style="margin-top: 0; font-size: 20px;">تنبيه</h3>
+            <p id="neo-alert-message" style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; font-size: 14px;"></p>
+            <button id="neo-alert-btn" class="neo-btn primary full-width" onclick="closeModal('neo-alert-modal')">فهمت، شكراً</button>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="neo-confirm-modal" class="neo-modal" style="z-index: 9999;">
+        <div class="modal-body" style="max-width: 350px; padding: 25px;">
+            <h3 id="neo-confirm-title" style="margin-top: 0; font-size: 20px;">تأكيد</h3>
+            <p id="neo-confirm-message" style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; font-size: 14px;"></p>
+            <div class="modal-actions">
+                <button class="neo-btn secondary flex-1" onclick="closeModal('neo-confirm-modal')">إلغاء</button>
+                <button id="neo-confirm-btn" class="neo-btn danger flex-1">متأكد</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
