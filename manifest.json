@@ -1,17 +1,23 @@
 {
   "name": "Exo Second Brain",
   "short_name": "Exo",
-  "description": "نظام الإنتاجية المرن",
+  "description": "عقلك التاني ونظام الإنتاجية المرن",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#4CAF50",
+  "background_color": "#050505",
+  "theme_color": "#4facfe",
   "icons": [
     {
-<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3595/3595029.png">
+      "src": "https://cdn-icons-png.flaticon.com/512/3595/3595029.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3595/3595029.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
