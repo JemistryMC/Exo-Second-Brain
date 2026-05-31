@@ -346,3 +346,39 @@ textarea.neo-input { resize: vertical; min-height: 80px; }
         gap: 15px;
     }
 }
+/* === تأثيرات المهمة الحالية (Live Sync) === */
+.live-active-task {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 25px rgba(79, 172, 254, 0.2), inset 0 0 15px rgba(79, 172, 254, 0.05) !important;
+    transform: scale(1.02);
+}
+
+.live-indicator { display: none; }
+
+.live-active-task .live-indicator {
+    display: inline-flex;
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    align-items: center;
+    gap: 5px;
+    animation: blinkLive 1.5s infinite alternate;
+    margin-right: auto; /* عشان البادج يروح في آخر السطر شمال */
+}
+
+.live-active-task .live-indicator::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--danger);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--danger);
+}
+
+@keyframes blinkLive {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
