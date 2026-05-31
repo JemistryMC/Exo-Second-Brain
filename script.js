@@ -78,6 +78,102 @@ function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
 }
 
+// دالة حفظ الميعاد الجديد
+function saveBedtime() {
+    const time = document.getElementById('bedtime-setting').value;
+    if(time) {
+        localStorage.setItem('exo_bedtime', time);
+        
+        // التريكة هنا: لما بتغير الوقت، بنمسح القفل بتاع "تم الإرسال اليوم" عشان يشتغل معاك فوراً وقت التجربة
+        localStorage.removeItem('exo_last_notified'); 
+        
+        showNeoAlert('تم الحفظ 🌙', `تم ضبط منبه النوم والإشعارات على الساعة ${time}.`, 'success');
+    }
+}
+
+// تحديث نظام الإشعارات عشان يقرأ الميعاد المتغير
+function setupNotifications() {
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+
+    const savedBedtime = localStorage.getItem('exo_bedtime') || '22:00';
+    const bedtimeInput = document.getElementById('bedtime-setting');
+    if(bedtimeInput) bedtimeInput.value = savedBedtime;
+
+    // خلينا الفحص كل 10 ثواني بدل 60 ثانية عشان يلقط الدقيقة بالظبط
+    setInterval(() => {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const currentTime = `${h}:${m}`;
+
+        const targetTime = localStorage.getItem('exo_bedtime') || '22:00';
+        const lastNotified = localStorage.getItem('exo_last_notified');
+        const todayStr = now.toLocaleDateString();
+
+        if (currentTime === targetTime && lastNotified !== todayStr) {
+            sendNotification("وقت الراحة 🌙", "وقت النوم اللي حددته جيه.. افصل دلوقتي عشان تصحى بكامل طاقتك!");
+            localStorage.setItem('exo_last_notified', todayStr); 
+        }
+    }, 10000); // 10 ثواني
+}
+function sendNotification(title, body) {
+    // 1. إرسال إشعار لنظام التشغيل (الويندوز)
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: "https://cdn-icons-png.flaticon.com/512/3595/3595029.png" });
+    }
+    
+    // 2. إشعار احتياطي داخل الموقع نفسه (Fallback) عشان نضمن إنك هتشوفه
+    showNeoAlert(title, body, 'normal');
+}
+
+// دالة لجلب المهام المتكررة بتاعة الأيام اللي فاتت وتنزيلها في يومك الجديد تلقائياً
+async function syncRecurringTasks() {
+    const today = getLocalDate();
+    
+    // جلب المهام المتكررة
+    const { data: recurringTasks } = await supabaseClient.from('daily_blocks')
+        .select('*').eq('user_id', currentUser.id).eq('is_recurring', true);
+    
+    if (!recurringTasks || recurringTasks.length === 0) return;
+
+    // فلترة عشان ناخد المهام بدون تكرار في المصفوفة
+    const uniqueHabits = [];
+    const map = new Map();
+    recurringTasks.forEach(task => {
+        if(!map.has(task.title)) { map.set(task.title, true); uniqueHabits.push(task); }
+    });
+
+    // جلب مهام اليوم الحالي عشان مننزلش المهمة مرتين
+    const { data: todaysTasks } = await supabaseClient.from('daily_blocks')
+        .select('title').eq('user_id', currentUser.id).eq('scheduled_date', today);
+    const todayTitles = todaysTasks ? todaysTasks.map(t => t.title) : [];
+    
+    const tasksToInsert = [];
+    uniqueHabits.forEach(habit => {
+        if (!todayTitles.includes(habit.title)) {
+            tasksToInsert.push({
+                user_id: currentUser.id,
+                title: habit.title,
+                category: habit.category,
+                task_time: habit.task_time,
+                duration: habit.duration,
+                priority: habit.priority,
+                is_recurring: true,
+                scheduled_date: today,
+                is_completed: false,
+                shift_count: 0,
+                is_pinned: habit.is_pinned
+            });
+        }
+    });
+
+    if (tasksToInsert.length > 0) {
+        await supabaseClient.from('daily_blocks').insert(tasksToInsert);
+    }
+}
+
 async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
@@ -86,9 +182,12 @@ async function initApp() {
     const options = { weekday: 'long', month: 'long', day: 'numeric' };
     document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-EG', options);
     
+    setupNotifications(); // تشغيل الإشعارات
+    
     await loadCategories();
     
     if (userCategories.length > 0) {
+        await syncRecurringTasks(); // سحب العادات اليومية
         await loadStatsAndTasks();
         await checkWeeklyReview(); 
     }
@@ -155,11 +254,10 @@ async function loadCategories() {
 
 function renderOnboardingPresets() {
     const container = document.getElementById('onboarding-presets');
-    let presetsHTML = '';
+    container.innerHTML = '';
     presetCats.forEach(cat => {
-        presetsHTML += `<button class="neo-btn secondary" style="padding: 8px 12px; font-size: 13px;" onclick="selectOnboardingPreset('${cat.name}', '${cat.icon}', '${cat.color}')">${cat.icon} ${cat.name}</button>`;
+        container.innerHTML += `<button class="neo-btn secondary" style="padding: 8px 12px; font-size: 13px;" onclick="selectOnboardingPreset('${cat.name}', '${cat.icon}', '${cat.color}')">${cat.icon} ${cat.name}</button>`;
     });
-    container.innerHTML = presetsHTML;
 }
 
 function selectOnboardingPreset(name, icon, color) {
@@ -187,15 +285,14 @@ function removeOnboardingCat(index) {
 
 function renderSelectedOnboardingCats() {
     const container = document.getElementById('ob-selected-cats');
-    let obHTML = '';
+    container.innerHTML = '';
     onboardingCats.forEach((cat, idx) => {
-        obHTML += `
+        container.innerHTML += `
             <div class="cat-item" style="border-right-color: ${cat.color}; padding: 10px; margin-bottom: 5px;">
                 <span style="font-weight: 600; color: #fff; font-size: 13px;">${cat.icon} &nbsp; ${cat.name}</span>
                 <button class="del-cat-btn" onclick="removeOnboardingCat(${idx})" style="padding: 4px 8px;">حذف</button>
             </div>`;
     });
-    container.innerHTML = obHTML;
 }
 
 async function completeOnboarding() {
@@ -233,11 +330,10 @@ function updateCategoryDropdown(elementId) {
 
 function renderCategoryList() {
     const list = document.getElementById('categories-list');
-    let catsHTML = '';
+    list.innerHTML = '';
     userCategories.forEach(cat => {
-        catsHTML += `<div class="cat-item" style="border-right-color: ${cat.color}"><span style="font-weight: 600; color: #fff;">${cat.icon} &nbsp; ${escapeHTML(cat.name)}</span><button class="del-cat-btn" onclick="deleteCategory('${cat.id}')">حذف</button></div>`;
+        list.innerHTML += `<div class="cat-item" style="border-right-color: ${cat.color}"><span style="font-weight: 600; color: #fff;">${cat.icon} &nbsp; ${escapeHTML(cat.name)}</span><button class="del-cat-btn" onclick="deleteCategory('${cat.id}')">حذف</button></div>`;
     });
-    list.innerHTML = catsHTML;
 }
 
 async function addNewCategory() {
@@ -283,30 +379,40 @@ function updateProgressRing() {
 function generateTaskHTML(block, isFuture = false) {
     const catData = userCategories.find(c => c.name === block.category) || { icon: '📌', color: '#a1a1aa' };
     const completedClass = block.is_completed ? 'completed' : '';
-    const pinnedClass = block.is_pinned && !isFuture ? 'pinned' : '';
     const safeTitle = escapeHTML(block.title);
     
     const shiftWarnings = block.shift_count >= 3 ? `<span class="danger-text">⚠️ تم التأجيل ${block.shift_count} مرات! (ينصح بالتقسيم)</span>` : '';
     const shiftDangerClass = block.shift_count >= 3 ? 'shift-danger' : '';
+    
+    // بيانات الأولوية والتلوين (مصفوفة أيزنهاور)
+    const priorityData = {
+        1: { name: 'مهم وعاجل', color: '#ef4444' }, 
+        2: { name: 'مهم (غير عاجل)', color: '#10b981' }, 
+        3: { name: 'عاجل (غير مهم)', color: '#f59e0b' }, 
+        4: { name: 'غير مهم', color: '#a1a1aa' } 
+    };
+    const pLevel = block.priority || 4;
+    const priorityBadge = `<span style="background: ${priorityData[pLevel].color}15; color: ${priorityData[pLevel].color}; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">${priorityData[pLevel].name}</span>`;
+
+    const durationBadge = block.duration ? `<span>&bull;</span><span style="color: #fff; font-size: 11px;">⏳ ${block.duration} دقيقة</span>` : '';
+    const recurringBadge = block.is_recurring ? `<span title="مهمة تتكرر يومياً" style="font-size: 11px;">🔁</span>` : '';
+    const dateBadge = isFuture ? `<span>&bull;</span><span class="future-badge">📅 ${block.scheduled_date}</span>` : '';
 
     let actionsHTML = block.is_completed ? 
         `<span style="color: #4facfe; font-size: 12px; font-weight: 600;">عاش! تم الإنجاز 👏</span>
          <button class="icon-action-btn delete-btn" onclick="deleteTask('${block.id}')" title="حذف">🗑️</button>` : 
-        `<button class="icon-action-btn ${block.is_pinned ? 'active-pin' : ''}" onclick="togglePin('${block.id}', ${!block.is_pinned}, ${isFuture})" title="تثبيت المهمة لفوق">📌</button>
-         <button class="icon-action-btn" onclick="openEditModal('${block.id}')" title="تعديل">✏️</button>
+        `<button class="icon-action-btn" onclick="openEditModal('${block.id}')" title="تعديل">✏️</button>
          ${!isFuture ? `<button class="shift-text-btn ${shiftDangerClass}" onclick="openShiftModal('${block.id}')">تأجيل</button>` : ''}
          <button class="shift-text-btn" onclick="openSplitModal('${block.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981; margin-right: 4px;">تقسيم</button>
          <button class="icon-action-btn delete-btn" onclick="deleteTask('${block.id}')" title="حذف">🗑️</button>`;
-         
-    const dateBadge = isFuture ? `<span class="future-badge">📅 ${block.scheduled_date}</span>` : '';
 
     return `
-        <div class="task-card ${completedClass} ${pinnedClass}" id="block-${block.id}" style="border-right-color: ${catData.color}">
+        <div class="task-card ${completedClass}" id="block-${block.id}" style="border-right-color: ${priorityData[pLevel].color}">
             <div class="task-content-wrapper">
                 <label class="custom-checkbox"><input type="checkbox" ${block.is_completed ? 'checked' : ''} onchange="toggleBlock('${block.id}', this.checked, ${isFuture})"><span class="checkmark"></span></label>
                 <div class="task-details">
                     <h3 class="task-title">${safeTitle}</h3>
-                    <div class="task-meta"><span style="color: ${catData.color}">${catData.icon} ${block.category}</span><span>&bull;</span><span>${block.task_time}</span>${dateBadge}</div>
+                    <div class="task-meta">${priorityBadge}<span>&bull;</span><span style="color: ${catData.color}">${catData.icon} ${block.category}</span><span>&bull;</span><span>${block.task_time}</span>${durationBadge} ${recurringBadge} ${dateBadge}</div>
                     ${!isFuture ? shiftWarnings : ''}
                 </div>
             </div>
@@ -314,35 +420,31 @@ function generateTaskHTML(block, isFuture = false) {
         </div>
     `;
 }
+function handleEnter(e) {
+    if (e.key === 'Enter') addNewTask();
+}
 
 function renderBlocks() {
-    currentBlocks.sort((a, b) => (b.is_pinned === a.is_pinned) ? 0 : b.is_pinned ? 1 : -1);
+    // الفرز التلقائي النظيف: الأولويات فقط (1 ثم 2 ثم 3 ثم 4)
+    currentBlocks.sort((a, b) => {
+        const pA = a.priority || 4;
+        const pB = b.priority || 4;
+        return pA - pB;
+    });
 
-    const container = document.getElementById('blocks-container'); 
-    if(currentBlocks.length === 0) { 
-        container.innerHTML = '<div style="text-align: center; color: #a1a1aa; padding: 40px 20px; background: #18181b; border-radius: 16px; border: 1px dashed #3f3f46;">يومك رايق والسبورة فاضية.. استمتع بوقتك ✨</div>'; 
-    } else { 
-        // التعديل هنا: تجميع الكود في متغير أولاً لمنع اللاج
-        let blocksHTML = '';
-        currentBlocks.forEach(block => { blocksHTML += generateTaskHTML(block, false); }); 
-        container.innerHTML = blocksHTML;
-    }
+    const container = document.getElementById('blocks-container'); container.innerHTML = '';
+    if(currentBlocks.length === 0) { container.innerHTML = '<div style="text-align: center; color: #a1a1aa; padding: 40px 20px; background: #18181b; border-radius: 16px; border: 1px dashed #3f3f46;">يومك رايق والسبورة فاضية.. استمتع بوقتك ✨</div>'; } 
+    else { currentBlocks.forEach(block => { container.innerHTML += generateTaskHTML(block, false); }); }
     updateProgressRing(); 
 
     const futureWrapper = document.getElementById('future-blocks-wrapper');
     const futureContainer = document.getElementById('future-blocks-container');
-    
+    futureContainer.innerHTML = '';
     if(futureBlocks.length > 0) {
         futureWrapper.style.display = 'block';
-        let futureHTML = '';
-        futureBlocks.forEach(block => { futureHTML += generateTaskHTML(block, true); });
-        futureContainer.innerHTML = futureHTML;
-    } else { 
-        futureWrapper.style.display = 'none'; 
-        futureContainer.innerHTML = '';
-    }
+        futureBlocks.forEach(block => { futureContainer.innerHTML += generateTaskHTML(block, true); });
+    } else { futureWrapper.style.display = 'none'; }
 }
-
 function toggleFutureTasks() {
     document.getElementById('future-blocks-container').classList.toggle('collapsed');
     document.getElementById('future-toggle-btn').classList.toggle('rotated');
@@ -486,28 +588,75 @@ async function toggleBlock(id, isCompleted, isFuture) {
     renderBlocks(); await supabaseClient.from('daily_blocks').update({ is_completed: isCompleted }).eq('id', id);
 }
 
-function handleEnter(e) { if(e.key === 'Enter') addNewTask(); }
-
 async function addNewTask() {
     const input = document.getElementById('new-task-input');
     const categoryInput = document.getElementById('task-category');
     const timeInput = document.getElementById('new-task-time');
+    const priorityInput = document.getElementById('task-priority');
+    const durationInput = document.getElementById('new-task-duration');
+    const recurringInput = document.getElementById('new-task-recurring');
     
     const title = escapeHTML(input.value.trim()); 
-    const timeVal = timeInput.value; 
-    const selectedCategory = categoryInput.value;
-    if(!title) return;
+    if(!title) {
+        showNeoAlert('تنبيه 💡', 'نسيت تكتب اسم المهمة الأول!', 'normal');
+        return;
+    }
     
     let formattedTime = 'بدون وقت';
-    if (timeVal) { const [hour, min] = timeVal.split(':'); const h = parseInt(hour); const ampm = h >= 12 ? 'م' : 'ص'; const h12 = h % 12 || 12; formattedTime = `${h12}:${min} ${ampm}`; }
+    if (timeInput && timeInput.value) { 
+        const [hour, min] = timeInput.value.split(':'); 
+        const h = parseInt(hour); 
+        const ampm = h >= 12 ? 'م' : 'ص'; 
+        const h12 = h % 12 || 12; 
+        formattedTime = `${h12}:${min} ${ampm}`; 
+    }
     
-    const today = getLocalDate();
-    const newTask = { user_id: currentUser.id, title: title, category: selectedCategory, scheduled_date: today, is_completed: false, task_time: formattedTime, shift_count: 0, is_pinned: false };
+    const newTask = { 
+        user_id: currentUser.id, 
+        title: title, 
+        category: categoryInput ? categoryInput.value : 'مهام عامة', 
+        scheduled_date: getLocalDate(), 
+        is_completed: false, 
+        task_time: formattedTime, 
+        shift_count: 0, 
+        is_pinned: false,
+        priority: priorityInput ? parseInt(priorityInput.value) : 4,
+        duration: (durationInput && durationInput.value) ? parseInt(durationInput.value) : null,
+        is_recurring: recurringInput ? recurringInput.checked : false
+    };
 
-    input.disabled = true; input.value = 'جاري...';
-    const { data } = await supabaseClient.from('daily_blocks').insert([newTask]).select();
-    if(data) currentBlocks.push(data[0]); 
-    input.value = ''; timeInput.value = ''; input.disabled = false; input.focus(); renderBlocks();
+    // تغيير شكل حقل الإدخال أثناء التحميل
+    input.disabled = true; 
+    const originalPlaceholder = input.placeholder;
+    input.placeholder = 'جاري الحفظ... ⏳';
+    input.value = '';
+
+    // إرسال البيانات واستقبال أي أخطاء محتملة
+    const { data, error } = await supabaseClient.from('daily_blocks').insert([newTask]).select();
+    
+    if (error) {
+        // لو الداتابيز رفضت المهمة، هنرجعلك النص اللي كتبته ونعرض المشكلة
+        input.disabled = false;
+        input.value = title; 
+        input.placeholder = originalPlaceholder;
+        showNeoAlert('خطأ في قاعدة البيانات ⚠️', 'الرسالة من الخادم: ' + error.message, 'danger');
+        return;
+    }
+
+    if(data && data.length > 0) {
+        currentBlocks.push(data[0]); 
+    }
+    
+    // تصفير الخانات بعد النجاح
+    if(timeInput) timeInput.value = ''; 
+    if(durationInput) durationInput.value = ''; 
+    if(recurringInput) recurringInput.checked = false; 
+    if(priorityInput) priorityInput.value = "4";
+    
+    input.disabled = false; 
+    input.placeholder = originalPlaceholder;
+    input.focus(); 
+    renderBlocks();
 }
 
 function openShiftModal(id) {
