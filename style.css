@@ -382,3 +382,22 @@ textarea.neo-input { resize: vertical; min-height: 80px; }
     0% { opacity: 0.6; }
     100% { opacity: 1; }
 }
+/* === 1. تخصيص شريط التمرير (Custom Scrollbar) === */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; transition: 0.3s; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+/* === 2. حركة الاحتفال عند إنجاز 100% === */
+.progress-ring-container.celebrate #progress-circle {
+    stroke: #10b981; /* لون أخضر للإنجاز */
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+    animation: pulseComplete 1.5s infinite alternate;
+}
+.progress-ring-container.celebrate #progress-text {
+    text-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+}
+@keyframes pulseComplete {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}
