@@ -268,3 +268,81 @@ textarea.neo-input { resize: vertical; min-height: 80px; }
 }
 .guide-glass-card:hover .guide-icon-wrapper { background: rgba(79, 172, 254, 0.1); border-color: rgba(79, 172, 254, 0.4); transform: scale(1.1) rotate(-5deg); }
 .glowing-divider { height: 1px; width: 100%; background: linear-gradient(90deg, transparent, rgba(79, 172, 254, 0.5), transparent); margin: 40px 0; box-shadow: 0 0 10px rgba(79, 172, 254, 0.5); }
+
+/* =========================================
+   📱 دعم شاشات الموبايل (Exo Mobile UI) 📱
+   ========================================= */
+@media (max-width: 768px) {
+    /* 1. تصغير العناوين عشان تتناسب مع عرض الشاشة */
+    .header-info h1 { font-size: 26px; }
+    .exo-hero-title { font-size: 28px !important; }
+    .section-title-row h2 { font-size: 18px; }
+    
+    /* 2. فك زنقة حقول الإدخال (ترتيب عمودي بدل أفقي) */
+    .quick-add-row, .add-cat-row { 
+        flex-direction: column; 
+        gap: 12px; 
+    }
+    .quick-add-row > div {
+        flex-direction: column !important;
+        width: 100%;
+        gap: 12px;
+    }
+    .quick-add-panel .neo-input, .add-cat-row .neo-input {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+    
+    /* 3. تظبيط كروت المهام (الزراير تنزل تحت) */
+    .task-card { 
+        flex-direction: column; 
+        align-items: flex-start; 
+        gap: 15px; 
+    }
+    .task-content-wrapper {
+        align-items: flex-start;
+        width: 100%;
+    }
+    .task-actions { 
+        width: 100%; 
+        justify-content: flex-end; 
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 12px;
+    }
+    
+    /* 4. الدليل التفاعلي: تظبيط الكروت عشان متخرجش برا الشاشة */
+    .guide-glass-card .task-card {
+        padding: 12px;
+    }
+    .demo-sort-item .task-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    /* 5. شريط التنقل السفلي (أعرض وأسهل للصباع) */
+    .floating-nav { 
+        width: 90%; 
+        justify-content: space-around; 
+        bottom: 15px;
+        padding: 10px;
+    }
+    .nav-item { padding: 12px; justify-content: center; width: 100%;}
+    .nav-icon { font-size: 22px; } /* تكبير الأيقونة للمس */
+    
+    /* 6. النوافذ المنبثقة (Modals) */
+    .modal-body { 
+        width: 90%; 
+        padding: 20px; 
+    }
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    /* 7. تظبيط باليتة الألوان في الدليل */
+    .guide-glass-card > div[style*="justify-content: space-between"] {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 15px;
+    }
+}
