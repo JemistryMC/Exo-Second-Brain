@@ -212,6 +212,31 @@ function updateLiveSync() {
     });
 }
 
+// === نظام الترحيل التلقائي للمهام المتأخرة ===
+async function migrateOverdueTasks() {
+    const today = getLocalDate();
+    
+    // جلب المهام اللي ميعادها فات (أصغر من اليوم) وماخلصتش (is_completed: false)
+    const { data: overdueTasks } = await supabaseClient.from('daily_blocks')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('is_completed', false)
+        .lt('scheduled_date', today);
+        
+    if (overdueTasks && overdueTasks.length > 0) {
+        for (let task of overdueTasks) {
+            // ترحيل المهمة لليوم الحالي وزيادة عداد الكسل (التأجيل)
+            await supabaseClient.from('daily_blocks').update({
+                scheduled_date: today,
+                shift_count: (task.shift_count || 0) + 1
+            }).eq('id', task.id);
+        }
+        
+        // نبعتلك إشعار عشان تبقى عارف إن فيه تراكمات جاتلك من إمبارح
+        showNeoAlert('تنبيه ترحيل 🔄', `تم نقل ${overdueTasks.length} مهمة متأخرة من الأيام اللي فاتت لجدول النهاردة.. محرك الكسل بيراقبك!`, 'normal');
+    }
+}
+
 async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
@@ -225,7 +250,8 @@ async function initApp() {
     await loadCategories();
     
     if (userCategories.length > 0) {
-        await syncRecurringTasks(); // سحب العادات اليومية
+        await syncRecurringTasks(); 
+              await migrateOverdueTasks();
         await loadStatsAndTasks();
         await checkWeeklyReview(); 
     }
@@ -405,25 +431,44 @@ async function loadStatsAndTasks() {
 }
 
 function updateProgressRing() {
-    const circle = document.getElementById('progress-circle'); const text = document.getElementById('progress-text');
-    const radius = circle.r.baseVal.value; const circumference = radius * 2 * Math.PI;
+    const circle = document.getElementById('progress-circle'); 
+    const text = document.getElementById('progress-text');
+    const container = circle.closest('.progress-ring-container');
+    const radius = circle.r.baseVal.value; 
+    const circumference = radius * 2 * Math.PI;
+    
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
-    if(currentBlocks.length === 0) { circle.style.strokeDashoffset = circumference; text.innerText = '0%'; return; }
+    
+    if(currentBlocks.length === 0) { 
+        circle.style.strokeDashoffset = circumference; 
+        text.innerText = '0%'; 
+        container.classList.remove('celebrate');
+        return; 
+    }
+    
     const completed = currentBlocks.filter(b => b.is_completed).length;
     const percentage = Math.round((completed / currentBlocks.length) * 100);
     circle.style.strokeDashoffset = circumference - (percentage / 100) * circumference;
-    text.innerText = percentage === 100 ? '✅' : `${percentage}%`;
+    
+    if(percentage === 100) {
+        text.innerText = '✅';
+        container.classList.add('celebrate'); // تفعيل سحر الاحتفال
+    } else {
+        text.innerText = `${percentage}%`;
+        container.classList.remove('celebrate');
+        // رجع اللون الأصلي لو تراجع عن إنجاز مهمة
+        circle.style.stroke = 'url(#gradient)'; 
+    }
 }
-
 function generateTaskHTML(block, isFuture = false) {
     const catData = userCategories.find(c => c.name === block.category) || { icon: '📌', color: '#a1a1aa' };
     const completedClass = block.is_completed ? 'completed' : '';
     const safeTitle = escapeHTML(block.title);
     
-    const shiftWarnings = block.shift_count >= 3 ? `<span class="danger-text">⚠️ تم التأجيل ${block.shift_count} مرات! (ينصح بالتقسيم)</span>` : '';
+    // تحذير التأجيل
+    const shiftWarnings = block.shift_count >= 3 ? `<div class="danger-text" style="margin: 0; font-size: 11px;">⚠️ تم التأجيل ${block.shift_count} مرات!</div>` : '';
     const shiftDangerClass = block.shift_count >= 3 ? 'shift-danger' : '';
     
-    // بيانات الأولوية والتلوين (مصفوفة أيزنهاور)
     const priorityData = {
         1: { name: 'مهم وعاجل', color: '#ef4444' }, 
         2: { name: 'مهم (غير عاجل)', color: '#10b981' }, 
@@ -431,32 +476,51 @@ function generateTaskHTML(block, isFuture = false) {
         4: { name: 'غير مهم', color: '#a1a1aa' } 
     };
     const pLevel = block.priority || 4;
-    const priorityBadge = `<span style="background: ${priorityData[pLevel].color}15; color: ${priorityData[pLevel].color}; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">${priorityData[pLevel].name}</span>`;
-
-    const durationBadge = block.duration ? `<span>&bull;</span><span style="color: #fff; font-size: 11px;">⏳ ${block.duration} دقيقة</span>` : '';
-    const recurringBadge = block.is_recurring ? `<span title="مهمة تتكرر يومياً" style="font-size: 11px;">🔁</span>` : '';
-    const dateBadge = isFuture ? `<span>&bull;</span><span class="future-badge">📅 ${block.scheduled_date}</span>` : '';
-    const liveBadge = `<span class="live-indicator">يحدث الآن</span>`;
+    
+    // تصميم البادجات (Pills) بشكل منفصل ونظيف بدل النقط (•)
+    const priorityBadge = `<span style="background: ${priorityData[pLevel].color}15; color: ${priorityData[pLevel].color}; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;">${priorityData[pLevel].name}</span>`;
+    const catBadge = `<span style="background: rgba(255,255,255,0.03); color: ${catData.color}; padding: 5px 10px; border-radius: 8px; font-size: 11px;">${catData.icon} ${block.category}</span>`;
+    const timeBadge = block.task_time !== 'بدون وقت' ? `<span style="background: rgba(255,255,255,0.03); color: var(--text-muted); padding: 5px 10px; border-radius: 8px; font-size: 11px;">🕒 ${block.task_time}</span>` : '';
+    const durationBadge = block.duration ? `<span style="background: rgba(255,255,255,0.03); color: var(--text-muted); padding: 5px 10px; border-radius: 8px; font-size: 11px;">⏳ ${block.duration} دق</span>` : '';
+    const recurringBadge = block.is_recurring ? `<span style="background: rgba(79, 172, 254, 0.1); color: var(--accent); padding: 5px 10px; border-radius: 8px; font-size: 11px;" title="مهمة تتكرر يومياً">🔁 تكرار</span>` : '';
+    const dateBadge = isFuture ? `<span style="background: rgba(255,255,255,0.03); color: var(--text-muted); padding: 5px 10px; border-radius: 8px; font-size: 11px;">📅 ${block.scheduled_date}</span>` : '';
+    
+    const liveBadge = `<span class="live-indicator" style="margin-right: auto;">يحدث الآن</span>`;
 
     let actionsHTML = block.is_completed ? 
-        `<span style="color: #4facfe; font-size: 12px; font-weight: 600;">عاش! تم الإنجاز 👏</span>
+        `<span style="color: #4facfe; font-size: 12px; font-weight: 600; margin-left: auto;">عاش! تم الإنجاز 👏</span>
          <button class="icon-action-btn delete-btn" onclick="deleteTask('${block.id}')" title="حذف">🗑️</button>` : 
         `<button class="icon-action-btn" onclick="openEditModal('${block.id}')" title="تعديل">✏️</button>
          ${!isFuture ? `<button class="shift-text-btn ${shiftDangerClass}" onclick="openShiftModal('${block.id}')">تأجيل</button>` : ''}
-         <button class="shift-text-btn" onclick="openSplitModal('${block.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981; margin-right: 4px;">تقسيم</button>
+         <button class="shift-text-btn" onclick="openSplitModal('${block.id}')" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">تقسيم</button>
          <button class="icon-action-btn delete-btn" onclick="deleteTask('${block.id}')" title="حذف">🗑️</button>`;
 
     return `
-        <div class="task-card ${completedClass}" id="block-${block.id}" style="border-right-color: ${priorityData[pLevel].color}">
-            <div class="task-content-wrapper">
-                <label class="custom-checkbox"><input type="checkbox" ${block.is_completed ? 'checked' : ''} onchange="toggleBlock('${block.id}', this.checked, ${isFuture})"><span class="checkmark"></span></label>
-                <div class="task-details">
-                    <h3 class="task-title">${safeTitle}</h3>
-                    <div class="task-meta">${priorityBadge}<span>&bull;</span><span style="color: ${catData.color}">${catData.icon} ${block.category}</span><span>&bull;</span><span>${block.task_time}</span>${durationBadge} ${recurringBadge} ${dateBadge} ${liveBadge}</div>
-                    ${!isFuture ? shiftWarnings : ''}
-                </div>
+        <div class="task-card ${completedClass}" id="block-${block.id}" style="border-right-color: ${priorityData[pLevel].color}; flex-direction: column; align-items: stretch; gap: 15px; padding: 18px;">
+            
+            <!-- الصف الأول: العنوان وعلامة الصح ومؤشر الحدوث الآن -->
+            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                <label class="custom-checkbox" style="margin: 0;"><input type="checkbox" ${block.is_completed ? 'checked' : ''} onchange="toggleBlock('${block.id}', this.checked, ${isFuture})"><span class="checkmark"></span></label>
+                <h3 class="task-title" style="margin: 0; font-size: 16px; flex: 1; line-height: 1.4;">${safeTitle}</h3>
+                ${liveBadge}
             </div>
-            <div class="task-actions">${actionsHTML}</div>
+            
+            <!-- الصف الثاني: تفاصيل المهمة (Pills منفصلة) -->
+            <div class="task-meta" style="display: flex; flex-wrap: wrap; gap: 8px; margin-right: 36px;">
+                ${priorityBadge}
+                ${catBadge}
+                ${timeBadge}
+                ${durationBadge}
+                ${recurringBadge}
+                ${dateBadge}
+            </div>
+            
+            <!-- الصف الثالث: الأزرار (Actions) -->
+            <div class="task-actions" style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; width: 100%; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 5px;">
+                <div style="margin-left: auto;">${shiftWarnings}</div>
+                ${actionsHTML}
+            </div>
+            
         </div>
     `;
 }
@@ -755,23 +819,63 @@ function switchTab(tabName) {
 }
 
 async function loadAnalytics() {
-    const { data: completedTasks } = await supabaseClient.from('daily_blocks').select('category').eq('user_id', currentUser.id).eq('is_completed', true);
-    const counts = {};
-    if (completedTasks) completedTasks.forEach(task => { counts[task.category] = (counts[task.category] || 0) + 1; });
-    const labels = userCategories.map(c => c.name); const dataValues = userCategories.map(c => counts[c.name] || 0); const backgroundColors = userCategories.map(c => c.color);
+    // 1. هنجيب التصنيف و"المدة" للمهام المكتملة فقط
+    const { data: completedTasks } = await supabaseClient.from('daily_blocks')
+        .select('category, duration')
+        .eq('user_id', currentUser.id)
+        .eq('is_completed', true);
+        
+    const times = {};
+    if (completedTasks) {
+        completedTasks.forEach(task => {
+            // 2. لو المهمة ليها مدة هنحسبها، لو ملهاش (مهمة قديمة مثلاً) هنفترض إنها 30 دقيقة عشان مجهودك ميضيعش
+            const mins = task.duration ? parseInt(task.duration) : 30; 
+            times[task.category] = (times[task.category] || 0) + mins;
+        });
+    }
+    
+    const labels = userCategories.map(c => c.name); 
+    
+    // 3. تحويل إجمالي الدقايق لساعات (مع التقريب لرقم عشري واحد، مثلاً 2.5 ساعة)
+    const dataValues = userCategories.map(c => {
+        const totalMins = times[c.name] || 0;
+        return Math.round((totalMins / 60) * 10) / 10; 
+    }); 
+    
+    const backgroundColors = userCategories.map(c => c.color);
+    
     renderChart(labels, dataValues, backgroundColors);
 }
-
 function renderChart(labels, data, colors) {
     const ctx = document.getElementById('statsChart').getContext('2d');
     if (myChart) myChart.destroy(); 
     myChart = new Chart(ctx, {
         type: 'doughnut', 
-        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, hoverOffset: 10 }] },
-        options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', padding: 25, font: { family: 'Alexandria', size: 13 } } } }, layout: { padding: 20 } }
+        data: { 
+            labels: labels, 
+            datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, hoverOffset: 10 }] 
+        },
+        options: { 
+            responsive: true, 
+            cutout: '70%', 
+            plugins: { 
+                legend: { 
+                    position: 'bottom', 
+                    labels: { color: '#a1a1aa', padding: 25, font: { family: 'Alexandria', size: 13 } } 
+                },
+                // 4. السطر ده عشان لما تقف بالماوس على الدايرة يقولك "كذا ساعة" بدل رقم مبهم
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.label}: ${context.raw} ساعة`;
+                        }
+                    }
+                }
+            }, 
+            layout: { padding: 20 } 
+        }
     });
 }
-
 // === دوال محاكاة واجهة الدليل التفاعلية (Guide Interactivity) ===
 function setDemoRating(stars) {
     const starSpans = document.getElementById('demo-rating-stars').children;
