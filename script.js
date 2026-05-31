@@ -173,6 +173,44 @@ async function syncRecurringTasks() {
         await supabaseClient.from('daily_blocks').insert(tasksToInsert);
     }
 }
+// تحويل الوقت من صيغة (10:30 ص) لدقايق عشان نقارنها بسهولة
+function parseTimeToMinutes(timeStr) {
+    if (!timeStr || timeStr === 'بدون وقت') return null;
+    const parts = timeStr.split(' ');
+    if(parts.length < 2) return null;
+    const [time, period] = parts;
+    let [h, m] = time.split(':').map(Number);
+    if (period === 'م' && h !== 12) h += 12;
+    if (period === 'ص' && h === 12) h = 0;
+    return h * 60 + m;
+}
+
+// دالة المزامنة اللحظية
+function updateLiveSync() {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    
+    currentBlocks.forEach(block => {
+        const card = document.getElementById(`block-${block.id}`);
+        if (!card) return;
+        
+        const startMins = parseTimeToMinutes(block.task_time);
+        
+        // لو المهمة ليها وقت وبداية ومش خلصانة
+        if (startMins !== null && block.duration && !block.is_completed) {
+            const endMins = startMins + block.duration;
+            
+            // لو إحنا دلوقتي جوة إطار وقت المهمة
+            if (currentMins >= startMins && currentMins < endMins) {
+                card.classList.add('live-active-task');
+            } else {
+                card.classList.remove('live-active-task');
+            }
+        } else {
+            card.classList.remove('live-active-task');
+        }
+    });
+}
 
 async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -191,6 +229,7 @@ async function initApp() {
         await loadStatsAndTasks();
         await checkWeeklyReview(); 
     }
+setInterval(updateLiveSync, 60000);
 }
 
 // === منطق شاشة الاستقبال (Onboarding) ===
@@ -397,6 +436,7 @@ function generateTaskHTML(block, isFuture = false) {
     const durationBadge = block.duration ? `<span>&bull;</span><span style="color: #fff; font-size: 11px;">⏳ ${block.duration} دقيقة</span>` : '';
     const recurringBadge = block.is_recurring ? `<span title="مهمة تتكرر يومياً" style="font-size: 11px;">🔁</span>` : '';
     const dateBadge = isFuture ? `<span>&bull;</span><span class="future-badge">📅 ${block.scheduled_date}</span>` : '';
+    const liveBadge = `<span class="live-indicator">يحدث الآن</span>`;
 
     let actionsHTML = block.is_completed ? 
         `<span style="color: #4facfe; font-size: 12px; font-weight: 600;">عاش! تم الإنجاز 👏</span>
@@ -412,7 +452,7 @@ function generateTaskHTML(block, isFuture = false) {
                 <label class="custom-checkbox"><input type="checkbox" ${block.is_completed ? 'checked' : ''} onchange="toggleBlock('${block.id}', this.checked, ${isFuture})"><span class="checkmark"></span></label>
                 <div class="task-details">
                     <h3 class="task-title">${safeTitle}</h3>
-                    <div class="task-meta">${priorityBadge}<span>&bull;</span><span style="color: ${catData.color}">${catData.icon} ${block.category}</span><span>&bull;</span><span>${block.task_time}</span>${durationBadge} ${recurringBadge} ${dateBadge}</div>
+                    <div class="task-meta">${priorityBadge}<span>&bull;</span><span style="color: ${catData.color}">${catData.icon} ${block.category}</span><span>&bull;</span><span>${block.task_time}</span>${durationBadge} ${recurringBadge} ${dateBadge} ${liveBadge}</div>
                     ${!isFuture ? shiftWarnings : ''}
                 </div>
             </div>
@@ -444,6 +484,7 @@ function renderBlocks() {
         futureWrapper.style.display = 'block';
         futureBlocks.forEach(block => { futureContainer.innerHTML += generateTaskHTML(block, true); });
     } else { futureWrapper.style.display = 'none'; }
+updateLiveSync();
 }
 function toggleFutureTasks() {
     document.getElementById('future-blocks-container').classList.toggle('collapsed');
