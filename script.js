@@ -783,5 +783,32 @@ function triggerDemoSplit() {
         wrapper.style.opacity = '1';
     }, 400);
 }
+// === نظام تثبيت التطبيق (PWA Installation) ===
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // منع المتصفح من إظهار رسالته المزعجة العشوائية
+    e.preventDefault();
+    // حفظ الحدث عشان نستخدمه لما المستخدم يدوس على الزرار بتاعنا
+    deferredPrompt = e;
+    // إظهار زرار التثبيت في شاشة الإعدادات
+    const installBtn = document.getElementById('install-app-btn');
+    if (installBtn) installBtn.style.display = 'block';
+});
+
+async function installApp() {
+    if (deferredPrompt) {
+        // إظهار شاشة التثبيت الرسمية بتاعت الأندرويد/الكروم
+        deferredPrompt.prompt();
+        // استنى لحد ما المستخدم يوافق أو يرفض
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('تم تثبيت Exo بنجاح!');
+        }
+        // تصفير المتغير وإخفاء الزرار
+        deferredPrompt = null;
+        document.getElementById('install-app-btn').style.display = 'none';
+    }
+}
 
 initApp();
