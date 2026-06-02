@@ -23,6 +23,7 @@
                 <p id="current-date"></p>
             </div>
             <div class="header-stats">
+<button class="icon-action-btn" onclick="enterCaveMode()" title="وضع الكهف (التركيز العميق)" style="border-radius: 50%; font-size: 16px; margin-left: 10px; box-shadow: 0 0 15px rgba(255,255,255,0.1);">🧘‍♂️</button>
                 <div class="streak-pill" id="streak-display" title="شعلة الاستمرارية">🔥 0</div>
                 <div class="progress-ring-container">
                     <svg class="progress-svg" width="40" height="40">
@@ -61,80 +62,125 @@
                 مفيش داعي ترتب مهامك بإيدك. النظام هيرتب يومك بحيث المهام العاجلة والضرورية تظهر فوق تلقائياً. <strong>غير أهمية المهام اللي تحت دي وشوف إزاي النظام هيرتبها قدام عينك:</strong>
             </p>
             
-            <div id="demo-sort-container" style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.02);">
+<div id="demo-sort-container" style="display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.02);">
+                
+                <!-- الكارت الأول: Red Dead -->
                 <div class="demo-sort-item task-card" style="order: 4; border-right-color: #a1a1aa; padding: 12px; margin: 0; box-shadow: none;">
                     <div class="task-content-wrapper">
                         <div class="task-details" style="width: 100%;">
                             <h3 class="task-title" style="font-size: 14px;">تختيم لعبة Red Dead Redemption 2 🐎</h3>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                                 <span class="demo-badge" style="background: #a1a1aa15; color: #a1a1aa; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">☕ غير مهم</span>
-                                <select class="neo-input" style="padding: 4px 8px; font-size: 11px;" onchange="updateDemoSort(this)">
-                                    <option value="1">🔥 عاجل ومهم</option>
-                                    <option value="2">✨ مهم</option>
-                                    <option value="3">⚡ عاجل</option>
-                                    <option value="4" selected>☕ غير مهم</option>
-                                </select>
+                                
+                                <div class="custom-select-wrapper" style="width: 140px;">
+                                    <div class="custom-select-trigger neo-input" style="padding: 6px 10px; font-size: 11px;" onclick="toggleCustomSelect(this)">
+                                        <span class="display-text"><span style="margin-left:5px;">☕</span> غير مهم</span>
+                                        <span class="arrow">▼</span>
+                                    </div>
+                                    <div class="custom-options">
+                                        <div class="custom-option" data-value="1" onclick="selectDemoOption(this)"><span style="margin-left:5px;">🔥</span> عاجل ومهم</div>
+                                        <div class="custom-option" data-value="2" onclick="selectDemoOption(this)"><span style="margin-left:5px;">✨</span> مهم</div>
+                                        <div class="custom-option" data-value="3" onclick="selectDemoOption(this)"><span style="margin-left:5px;">⚡</span> عاجل</div>
+                                        <div class="custom-option selected" data-value="4" onclick="selectDemoOption(this)"><span style="margin-left:5px;">☕</span> غير مهم</div>
+                                    </div>
+                                    <input type="hidden" class="demo-val" value="4">
+                                </div>
+
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- الكارت التاني: صيدلية 3D -->
                 <div class="demo-sort-item task-card" style="order: 2; border-right-color: #10b981; padding: 12px; margin: 0; box-shadow: none;">
                     <div class="task-content-wrapper">
                         <div class="task-details" style="width: 100%;">
                             <h3 class="task-title" style="font-size: 14px;">استكمال تصميم 3D لصيدلية د.عمر 🎨</h3>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                                 <span class="demo-badge" style="background: #10b98115; color: #10b981; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">✨ مهم</span>
-                                <select class="neo-input" style="padding: 4px 8px; font-size: 11px;" onchange="updateDemoSort(this)">
-                                    <option value="1">🔥 عاجل ومهم</option>
-                                    <option value="2" selected>✨ مهم</option>
-                                    <option value="3">⚡ عاجل</option>
-                                    <option value="4">☕ غير مهم</option>
-                                </select>
+                                
+                                <div class="custom-select-wrapper" style="width: 140px;">
+                                    <div class="custom-select-trigger neo-input" style="padding: 6px 10px; font-size: 11px;" onclick="toggleCustomSelect(this)">
+                                        <span class="display-text"><span style="margin-left:5px;">✨</span> مهم</span>
+                                        <span class="arrow">▼</span>
+                                    </div>
+                                    <div class="custom-options">
+                                        <div class="custom-option" data-value="1" onclick="selectDemoOption(this)"><span style="margin-left:5px;">🔥</span> عاجل ومهم</div>
+                                        <div class="custom-option selected" data-value="2" onclick="selectDemoOption(this)"><span style="margin-left:5px;">✨</span> مهم</div>
+                                        <div class="custom-option" data-value="3" onclick="selectDemoOption(this)"><span style="margin-left:5px;">⚡</span> عاجل</div>
+                                        <div class="custom-option" data-value="4" onclick="selectDemoOption(this)"><span style="margin-left:5px;">☕</span> غير مهم</div>
+                                    </div>
+                                    <input type="hidden" class="demo-val" value="2">
+                                </div>
+
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- الكارت التالت: Metabolism -->
                 <div class="demo-sort-item task-card" style="order: 1; border-right-color: #ef4444; padding: 12px; margin: 0; box-shadow: none;">
                     <div class="task-content-wrapper">
                         <div class="task-details" style="width: 100%;">
                             <h3 class="task-title" style="font-size: 14px;">مذاكرة مسارات الـ Metabolism 💊</h3>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                                 <span class="demo-badge" style="background: #ef444415; color: #ef4444; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;">🔥 عاجل ومهم</span>
-                                <select class="neo-input" style="padding: 4px 8px; font-size: 11px;" onchange="updateDemoSort(this)">
-                                    <option value="1" selected>🔥 عاجل ومهم</option>
-                                    <option value="2">✨ مهم</option>
-                                    <option value="3">⚡ عاجل</option>
-                                    <option value="4">☕ غير مهم</option>
-                                </select>
+                                
+                                <div class="custom-select-wrapper" style="width: 140px;">
+                                    <div class="custom-select-trigger neo-input" style="padding: 6px 10px; font-size: 11px;" onclick="toggleCustomSelect(this)">
+                                        <span class="display-text"><span style="margin-left:5px;">🔥</span> عاجل ومهم</span>
+                                        <span class="arrow">▼</span>
+                                    </div>
+                                    <div class="custom-options">
+                                        <div class="custom-option selected" data-value="1" onclick="selectDemoOption(this)"><span style="margin-left:5px;">🔥</span> عاجل ومهم</div>
+                                        <div class="custom-option" data-value="2" onclick="selectDemoOption(this)"><span style="margin-left:5px;">✨</span> مهم</div>
+                                        <div class="custom-option" data-value="3" onclick="selectDemoOption(this)"><span style="margin-left:5px;">⚡</span> عاجل</div>
+                                        <div class="custom-option" data-value="4" onclick="selectDemoOption(this)"><span style="margin-left:5px;">☕</span> غير مهم</div>
+                                    </div>
+                                    <input type="hidden" class="demo-val" value="1">
+                                </div>
+
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <script>
-                function updateDemoSort(selectElem) {
-                    const val = selectElem.value;
-                    const item = selectElem.closest('.demo-sort-item');
-                    item.style.order = val; 
-                    const colors = {1: '#ef4444', 2: '#10b981', 3: '#f59e0b', 4: '#a1a1aa'};
-                    const badges = {1: '🔥 عاجل ومهم', 2: '✨ مهم', 3: '⚡ عاجل', 4: '☕ غير مهم'};
-                    const bgs = {1: '#ef444415', 2: '#10b98115', 3: '#f59e0b15', 4: '#a1a1aa15'};
-                    item.style.borderRightColor = colors[val];
-                    const badge = item.querySelector('.demo-badge');
-                    badge.innerText = badges[val];
-                    badge.style.color = colors[val];
-                    badge.style.background = bgs[val];
-                    item.style.transform = 'scale(1.02)';
-                    setTimeout(() => item.style.transform = 'scale(1)', 300);
-                }
-            </script>
+                <!-- سكريبت تشغيل الديمو بالشكل الجديد -->
+                <script>
+                    function selectDemoOption(optionElement) {
+                        const wrapper = optionElement.closest('.custom-select-wrapper');
+                        const displaySpan = wrapper.querySelector('.display-text');
+                        const hiddenInput = wrapper.querySelector('.demo-val');
+                        
+                        // تحديث الشكل
+                        wrapper.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                        optionElement.classList.add('selected');
+                        displaySpan.innerHTML = optionElement.innerHTML;
+                        hiddenInput.value = optionElement.getAttribute('data-value');
+                        wrapper.classList.remove('open');
+                        
+                        // تشغيل تأثير الفرز
+                        const val = hiddenInput.value;
+                        const item = wrapper.closest('.demo-sort-item');
+                        item.style.order = val; 
+                        
+                        const colors = {1: '#ef4444', 2: '#10b981', 3: '#f59e0b', 4: '#a1a1aa'};
+                        const badges = {1: '🔥 عاجل ومهم', 2: '✨ مهم', 3: '⚡ عاجل', 4: '☕ غير مهم'};
+                        const bgs = {1: '#ef444415', 2: '#10b98115', 3: '#f59e0b15', 4: '#a1a1aa15'};
+                        
+                        item.style.borderRightColor = colors[val];
+                        const badge = item.querySelector('.demo-badge');
+                        badge.innerText = badges[val];
+                        badge.style.color = colors[val];
+                        badge.style.background = bgs[val];
+                        
+                        item.style.transform = 'scale(1.02)';
+                        setTimeout(() => item.style.transform = 'scale(1)', 300);
+                    }
+                </script>
+</div>
         </div>
-    </div>
-
-    <div class="glowing-divider"></div>
+    </div> <div class="glowing-divider"></div>
 
     <div class="section-title-row" style="margin-bottom: 20px;">
         <h2>محرك تفتيت الكسل 🔨</h2>
@@ -301,35 +347,59 @@
 </main>
 
             <main id="tasks-section" class="tab-section" style="display: none;">
-             <div class="quick-add-panel">
+<!-- لوحة الإضافة السريعة بالكامل -->
+<div class="quick-add-panel">
     <input type="text" id="new-task-input" placeholder="وراك إيه النهاردة؟..." class="neo-input full-width" style="font-size: 16px; padding: 15px; border-radius: 16px;" onkeypress="handleEnter(event)">
     
     <div style="background: #1f1f22; border-radius: 12px; padding: 12px; margin-top: 15px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border);">
         
+        <!-- صف القوائم المنسدلة (التصنيفات + الأولويات) -->
         <div style="display: flex; gap: 10px;">
-            <select id="task-category" class="neo-input flex-1" style="font-size: 13px;"></select>
-            <select id="task-priority" class="neo-input flex-1" style="font-size: 13px;">
-                <option value="1">🔥 مهم وعاجل</option>
-                <option value="2">✨ مهم (غير عاجل)</option>
-                <option value="3">⚡ عاجل (غير مهم)</option>
-                <option value="4" selected>☕ غير مهم وغير عاجل</option>
-            </select>
+            
+            <!-- 1. قائمة التصنيفات المخصصة -->
+            <div class="custom-select-wrapper flex-1" id="category-custom-wrapper">
+                <div class="custom-select-trigger neo-input" style="font-size: 13px;" onclick="toggleCustomSelect(this)">
+                    <span id="category-display-text" class="display-text"><span style="margin-left:5px;">⏳</span> جاري التحميل...</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-options" id="category-custom-options">
+                    <!-- سيتم ملؤها أوتوماتيكياً بتصنيفاتك -->
+                </div>
+                <input type="hidden" id="task-category" value="">
+            </div>
+
+            <!-- 2. قائمة الأولويات المخصصة -->
+            <div class="custom-select-wrapper flex-1" id="priority-custom-wrapper">
+                <div class="custom-select-trigger neo-input" style="font-size: 13px;" onclick="toggleCustomSelect(this)">
+                    <span id="priority-display-text" class="display-text"><span style="margin-left:5px;">☕</span> غير مهم وغير عاجل</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-options">
+                    <div class="custom-option" data-value="1" onclick="selectCustomOption(this)"><span style="margin-left:5px;">🔥</span> مهم وعاجل</div>
+                    <div class="custom-option" data-value="2" onclick="selectCustomOption(this)"><span style="margin-left:5px;">✨</span> مهم (غير عاجل)</div>
+                    <div class="custom-option" data-value="3" onclick="selectCustomOption(this)"><span style="margin-left:5px;">⚡</span> عاجل (غير مهم)</div>
+                    <div class="custom-option selected" data-value="4" onclick="selectCustomOption(this)"><span style="margin-left:5px;">☕</span> غير مهم وغير عاجل</div>
+                </div>
+                <input type="hidden" id="task-priority" value="4">
+            </div>
+
         </div>
 
-       <div style="display: flex; gap: 10px; align-items: center;">
-    <input type="time" id="new-task-time" class="neo-input flex-1" style="font-size: 13px;" title="وقت البداية">
-    <input type="number" id="new-task-duration" class="neo-input flex-1" placeholder="المدة (دقائق)" style="font-size: 13px;" min="1">
-    
-    <label for="new-task-recurring" style="display: flex; align-items: center; justify-content: center; background: #27272a; border-radius: 12px; padding: 0 15px; height: 42px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; margin: 0; flex: 1;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='transparent'">
-        <div class="custom-checkbox" style="margin: 0; transform: scale(0.8); pointer-events: none;">
-            <input type="checkbox" id="new-task-recurring">
-            <span class="checkmark"></span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="time" id="new-task-time" class="neo-input flex-1" style="font-size: 13px;" title="وقت البداية">
+            <input type="number" id="new-task-duration" class="neo-input flex-1" placeholder="المدة (دقائق)" style="font-size: 13px;" min="1">
+            
+            <label for="new-task-recurring" style="display: flex; align-items: center; justify-content: center; background: #27272a; border-radius: 12px; padding: 0 15px; height: 42px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; margin: 0; flex: 1;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='transparent'">
+                <div class="custom-checkbox" style="margin: 0; transform: scale(0.8); pointer-events: none;">
+                    <input type="checkbox" id="new-task-recurring">
+                    <span class="checkmark"></span>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted); margin-right: 8px; user-select: none;">تكرار يومي</span>
+            </label>
         </div>
-        <span style="font-size: 12px; color: var(--text-muted); margin-right: 8px; user-select: none;">تكرار يومي</span>
-    </label>
-</div>
     
-    <button class="neo-btn primary full-width mt-15" onclick="addNewTask()" style="font-size: 15px; padding: 14px;">إضافة المهمة ✨</button>
+        <button class="neo-btn primary full-width mt-15" onclick="addNewTask()" style="font-size: 15px; padding: 14px;">إضافة المهمة ✨</button>
+    </div>
 </div>
                 
                 <div class="section-title-row">
@@ -406,22 +476,24 @@
     </div>
 
     <!-- Modal تعديل المهمة -->
-    <div id="edit-modal" class="neo-modal">
+<div id="edit-modal" class="neo-modal">
         <div class="modal-body">
             <h3>تعديل المهمة ✏️</h3>
             <input type="text" id="edit-task-title" class="neo-input full-width mt-15" placeholder="اسم المهمة">
             <input type="date" id="edit-task-date" class="neo-input full-width mt-10" title="تاريخ المهمة">
+            
             <div class="quick-add-row mt-10">
                 <select id="edit-task-category" class="neo-input flex-2"></select>
-                <input type="time" id="edit-task-time" class="neo-input flex-1" title="اتركه فارغاً للاحتفاظ بالوقت القديم">
+                <input type="time" id="edit-task-time" class="neo-input flex-1" title="وقت البداية (اتركه فارغاً للاحتفاظ بالقديم)">
+                <input type="number" id="edit-task-duration" class="neo-input flex-1" placeholder="المدة (دقائق)" min="1">
             </div>
+            
             <div class="modal-actions mt-15">
                 <button class="neo-btn secondary flex-1" onclick="closeModal('edit-modal')">إلغاء</button>
                 <button class="neo-btn primary flex-1" onclick="confirmEdit()">حفظ التعديلات</button>
             </div>
         </div>
     </div>
-
     <!-- Modal ميزة تقسيم المهمة -->
     <div id="split-modal" class="neo-modal">
         <div class="modal-body">
@@ -493,6 +565,14 @@
                 <button class="neo-btn secondary flex-1" onclick="closeModal('neo-confirm-modal')">إلغاء</button>
                 <button id="neo-confirm-btn" class="neo-btn danger flex-1">متأكد</button>
             </div>
+        </div>
+    </div>
+<div id="cave-mode-overlay" class="cave-overlay">
+        <div class="cave-content">
+            <span class="cave-subtitle">أنت الآن في عزلة تامة للتركيز على:</span>
+            <h1 id="cave-task-title" class="cave-title" style="margin-bottom: 30px; font-size: 45px;">جاري تحميل المهمة...</h1>
+            
+            <button class="neo-btn secondary" onclick="exitCaveMode()" style="border-radius: 50px; padding: 12px 35px; background: rgba(255,255,255,0.05); color: #a1a1aa; border-color: transparent;">الخروج من الكهف 🚪</button>
         </div>
     </div>
 
