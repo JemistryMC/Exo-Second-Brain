@@ -185,6 +185,24 @@ function parseTimeToMinutes(timeStr) {
     return h * 60 + m;
 }
 
+// دالة نقل المهام المتأخرة لليوم الحالي تلقائياً
+async function migrateOverdueTasks() {
+    const today = getLocalDate();
+    const { data: overdueTasks } = await supabaseClient.from('daily_blocks')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('is_completed', false)
+        .lt('scheduled_date', today); // التواريخ اللي فاتت
+        
+    if (overdueTasks && overdueTasks.length > 0) {
+        for (let task of overdueTasks) {
+            await supabaseClient.from('daily_blocks')
+                .update({ scheduled_date: today, shift_count: (task.shift_count || 0) + 1 })
+                .eq('id', task.id);
+        }
+    }
+}
+
 // دالة المزامنة اللحظية
 function updateLiveSync() {
     const now = new Date();
@@ -211,32 +229,59 @@ function updateLiveSync() {
         }
     });
 }
+// =========================================
+// 🧘‍♂️ محرك وضع الكهف (بدون تشتيت) 🧘‍♂️
+// =========================================
 
-// === نظام الترحيل التلقائي للمهام المتأخرة ===
-async function migrateOverdueTasks() {
-    const today = getLocalDate();
-    
-    // جلب المهام اللي ميعادها فات (أصغر من اليوم) وماخلصتش (is_completed: false)
-    const { data: overdueTasks } = await supabaseClient.from('daily_blocks')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .eq('is_completed', false)
-        .lt('scheduled_date', today);
-        
-    if (overdueTasks && overdueTasks.length > 0) {
-        for (let task of overdueTasks) {
-            // ترحيل المهمة لليوم الحالي وزيادة عداد الكسل (التأجيل)
-            await supabaseClient.from('daily_blocks').update({
-                scheduled_date: today,
-                shift_count: (task.shift_count || 0) + 1
-            }).eq('id', task.id);
+function enterCaveMode() {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    let activeTask = null;
+
+    // البحث عن المهمة اللي بتحدث "الآن"
+    for (let block of currentBlocks) {
+        if (block.is_completed) continue;
+        const startMins = parseTimeToMinutes(block.task_time);
+        if (startMins !== null && block.duration) {
+            const endMins = startMins + block.duration;
+            if (currentMins >= startMins && currentMins < endMins) {
+                activeTask = block;
+                break;
+            }
         }
-        
-        // نبعتلك إشعار عشان تبقى عارف إن فيه تراكمات جاتلك من إمبارح
-        showNeoAlert('تنبيه ترحيل 🔄', `تم نقل ${overdueTasks.length} مهمة متأخرة من الأيام اللي فاتت لجدول النهاردة.. محرك الكسل بيراقبك!`, 'normal');
     }
+
+    if (!activeTask) {
+        showNeoAlert('الكهف مقفول 🔒', 'وضع الكهف بيشتغل بس لما يكون فيه مهمة شغالة دلوقتي (يحدث الآن).', 'normal');
+        return;
+    }
+
+    // إجبار المتصفح على ملء الشاشة للتركيز التام
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((err) => console.log(err));
+    }
+
+    // تلوين الكهف واسم المهمة بناءً على أهميتها
+    const priorityColors = {1: '#ef4444', 2: '#10b981', 3: '#f59e0b', 4: '#4facfe'};
+    const color = priorityColors[activeTask.priority || 4];
+    
+    const titleElement = document.getElementById('cave-task-title');
+    titleElement.innerText = activeTask.title;
+    titleElement.style.color = color;
+    titleElement.style.textShadow = `0 0 40px ${color}80`;
+
+    // إظهار الكهف
+    document.getElementById('cave-mode-overlay').classList.add('active');
 }
 
+function exitCaveMode() {
+    document.getElementById('cave-mode-overlay').classList.remove('active');
+    
+    // الخروج من وضع ملء الشاشة
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(err => console.log(err));
+    }
+}
 async function initApp() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
@@ -383,16 +428,39 @@ async function completeOnboarding() {
 }
 
 function updateCategoryDropdown(elementId) {
-    const select = document.getElementById(elementId);
-    if(!select) return;
-    select.innerHTML = '';
-    userCategories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.name; option.innerText = `${cat.icon} ${cat.name}`;
-        select.appendChild(option);
-    });
+    if (elementId === 'task-category') {
+        const wrapper = document.getElementById('category-custom-wrapper');
+        if (!wrapper) return;
+        const optionsContainer = document.getElementById('category-custom-options');
+        const hiddenInput = document.getElementById('task-category');
+        const displaySpan = document.getElementById('category-display-text');
+        
+        optionsContainer.innerHTML = '';
+        userCategories.forEach((cat, index) => {
+            const opt = document.createElement('div');
+            opt.className = 'custom-option' + (index === 0 ? ' selected' : '');
+            opt.setAttribute('data-value', cat.name);
+            // فصل الإيموجي بمسافة لضمان ظهوره في اليمين دائماً
+            opt.innerHTML = `<span style="margin-left:5px;">${cat.icon}</span> ${escapeHTML(cat.name)}`;
+            opt.onclick = function() { selectCustomOption(this); };
+            optionsContainer.appendChild(opt);
+        });
+        
+        if (userCategories.length > 0) {
+            displaySpan.innerHTML = `<span style="margin-left:5px;">${userCategories[0].icon}</span> ${escapeHTML(userCategories[0].name)}`;
+            hiddenInput.value = userCategories[0].name;
+        }
+    } else {
+        const select = document.getElementById(elementId);
+        if(!select) return;
+        select.innerHTML = '';
+        userCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.name; option.innerText = `${cat.icon} ${cat.name}`;
+            select.appendChild(option);
+        });
+    }
 }
-
 function renderCategoryList() {
     const list = document.getElementById('categories-list');
     list.innerHTML = '';
@@ -529,8 +597,10 @@ function handleEnter(e) {
 }
 
 function renderBlocks() {
-    // الفرز التلقائي النظيف: الأولويات فقط (1 ثم 2 ثم 3 ثم 4)
     currentBlocks.sort((a, b) => {
+        if (a.is_completed && !b.is_completed) return 1;  // المكتمل ينزل تحت
+        if (!a.is_completed && b.is_completed) return -1; // النشط يفضل فوق
+        
         const pA = a.priority || 4;
         const pB = b.priority || 4;
         return pA - pB;
@@ -555,14 +625,6 @@ function toggleFutureTasks() {
     document.getElementById('future-toggle-btn').classList.toggle('rotated');
 }
 
-async function togglePin(id, isPinned, isFuture) {
-    const arr = isFuture ? futureBlocks : currentBlocks;
-    const index = arr.findIndex(b => b.id === id);
-    if(index > -1) arr[index].is_pinned = isPinned;
-    renderBlocks();
-    await supabaseClient.from('daily_blocks').update({ is_pinned: isPinned }).eq('id', id);
-}
-
 // تحويل الحذف للاستخدام مع النافذة الجديدة
 function deleteTask(id) {
     showNeoConfirm('حذف المهمة 🗑️', 'هل أنت متأكد إنك عايز تمسح المهمة دي خالص؟', async () => {
@@ -573,7 +635,7 @@ function deleteTask(id) {
     });
 }
 
-function openEditModal(id) {
+function openEditModal(id) {	
     taskToEditId = id;
     const block = currentBlocks.find(b => b.id === id) || futureBlocks.find(b => b.id === id);
     if(!block) return;
@@ -583,6 +645,7 @@ function openEditModal(id) {
     dateInput.min = getLocalDate(); 
     document.getElementById('edit-task-category').value = block.category;
     document.getElementById('edit-task-time').value = ''; 
+       document.getElementById('edit-task-duration').value = block.duration || '';
     document.getElementById('edit-modal').style.display = 'flex';
 }
 
@@ -591,6 +654,7 @@ async function confirmEdit() {
     const newCategory = document.getElementById('edit-task-category').value;
     const newDate = document.getElementById('edit-task-date').value;
     const timeVal = document.getElementById('edit-task-time').value;
+       const durationVal = document.getElementById('edit-task-duration').value;
     
     if(!newTitle || !newDate) {
         showNeoAlert('بيانات ناقصة', 'يا ريت تتأكد من كتابة اسم المهمة واختيار التاريخ.', 'danger');
@@ -605,7 +669,13 @@ async function confirmEdit() {
         formattedTime = `${h12}:${min} ${ampm}`;
     }
 
-    const updates = { title: newTitle, category: newCategory, task_time: formattedTime, scheduled_date: newDate };
+const updates = { 
+        title: newTitle, 
+        category: newCategory, 
+        task_time: formattedTime, 
+        scheduled_date: newDate,
+        duration: durationVal ? parseInt(durationVal) : null 
+    };
     document.querySelector('#edit-modal .primary').innerText = 'جاري الحفظ...';
     await supabaseClient.from('daily_blocks').update(updates).eq('id', taskToEditId);
     document.querySelector('#edit-modal .primary').innerText = 'حفظ التعديلات';
@@ -702,10 +772,7 @@ async function addNewTask() {
     const recurringInput = document.getElementById('new-task-recurring');
     
     const title = escapeHTML(input.value.trim()); 
-    if(!title) {
-        showNeoAlert('تنبيه 💡', 'نسيت تكتب اسم المهمة الأول!', 'normal');
-        return;
-    }
+    if(!title) { showNeoAlert('تنبيه 💡', 'نسيت تكتب اسم المهمة الأول!', 'normal'); return; }
     
     let formattedTime = 'بدون وقت';
     if (timeInput && timeInput.value) { 
@@ -730,40 +797,48 @@ async function addNewTask() {
         is_recurring: recurringInput ? recurringInput.checked : false
     };
 
-    // تغيير شكل حقل الإدخال أثناء التحميل
     input.disabled = true; 
     const originalPlaceholder = input.placeholder;
     input.placeholder = 'جاري الحفظ... ⏳';
     input.value = '';
 
-    // إرسال البيانات واستقبال أي أخطاء محتملة
     const { data, error } = await supabaseClient.from('daily_blocks').insert([newTask]).select();
     
     if (error) {
-        // لو الداتابيز رفضت المهمة، هنرجعلك النص اللي كتبته ونعرض المشكلة
-        input.disabled = false;
-        input.value = title; 
-        input.placeholder = originalPlaceholder;
-        showNeoAlert('خطأ في قاعدة البيانات ⚠️', 'الرسالة من الخادم: ' + error.message, 'danger');
-        return;
+        input.disabled = false; input.value = title; input.placeholder = originalPlaceholder;
+        showNeoAlert('خطأ في قاعدة البيانات ⚠️', 'الرسالة من الخادم: ' + error.message, 'danger'); return;
     }
 
-    if(data && data.length > 0) {
-        currentBlocks.push(data[0]); 
-    }
+    if(data && data.length > 0) currentBlocks.push(data[0]); 
     
-    // تصفير الخانات بعد النجاح
+    // === تصفير الخانات ===
     if(timeInput) timeInput.value = ''; 
     if(durationInput) durationInput.value = ''; 
     if(recurringInput) recurringInput.checked = false; 
-    if(priorityInput) priorityInput.value = "4";
     
-    input.disabled = false; 
-    input.placeholder = originalPlaceholder;
-    input.focus(); 
+    // تصفير قائمة التصنيفات
+    if(categoryInput && userCategories.length > 0) {
+        categoryInput.value = userCategories[0].name;
+        const catDisplay = document.getElementById('category-display-text');
+        if(catDisplay) catDisplay.innerHTML = `<span style="margin-left:5px;">${userCategories[0].icon}</span> ${escapeHTML(userCategories[0].name)}`;
+        document.querySelectorAll('#category-custom-options .custom-option').forEach((opt, idx) => {
+            if(idx === 0) opt.classList.add('selected'); else opt.classList.remove('selected');
+        });
+    }
+
+    // تصفير قائمة الأولويات
+    if(priorityInput) {
+        priorityInput.value = "4";
+        const displaySpan = document.getElementById('priority-display-text');
+        if(displaySpan) displaySpan.innerHTML = '<span style="margin-left:5px;">☕</span> غير مهم وغير عاجل';
+        document.querySelectorAll('#priority-custom-wrapper .custom-option').forEach(opt => opt.classList.remove('selected'));
+        const defaultOption = document.querySelector('#priority-custom-wrapper .custom-option[data-value="4"]');
+        if(defaultOption) defaultOption.classList.add('selected');
+    }
+    
+    input.disabled = false; input.placeholder = originalPlaceholder; input.focus(); 
     renderBlocks();
 }
-
 function openShiftModal(id) {
     taskToShiftId = id; document.getElementById('shift-modal').style.display = 'flex';
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -876,6 +951,37 @@ function renderChart(labels, data, colors) {
         }
     });
 }
+// === نظام القوائم المخصصة (Custom Dropdowns) ===
+
+// فتح وقفل القائمة
+function toggleCustomSelect(triggerElement) {
+    const wrapper = triggerElement.closest('.custom-select-wrapper');
+    wrapper.classList.toggle('open');
+}
+
+// اختيار عنصر من القائمة
+function selectCustomOption(optionElement) {
+    const wrapper = optionElement.closest('.custom-select-wrapper');
+    const displaySpan = wrapper.querySelector('.display-text');
+    const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+    
+    wrapper.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+    optionElement.classList.add('selected');
+    
+    displaySpan.innerHTML = optionElement.innerHTML; // استخدام innerHTML للحفاظ على الإيموجي
+    hiddenInput.value = optionElement.getAttribute('data-value');
+    
+    wrapper.classList.remove('open');
+}
+
+// قفل القائمة لو ضغطت في أي مكان فاضي في الشاشة
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+            wrapper.classList.remove('open');
+        });
+    }
+});
 // === دوال محاكاة واجهة الدليل التفاعلية (Guide Interactivity) ===
 function setDemoRating(stars) {
     const starSpans = document.getElementById('demo-rating-stars').children;
