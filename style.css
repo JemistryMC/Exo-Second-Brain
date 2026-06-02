@@ -21,6 +21,18 @@ body {
     direction: rtl;
     padding-bottom: 120px;
     overflow-x: hidden;
+    
+    /* 👇 اللمسات السحرية للأندرويد 👇 */
+    -webkit-tap-highlight-color: transparent; /* إخفاء مربع اللمس */
+    overscroll-behavior-y: none; /* منع السحب للتحديث */
+    user-select: none; /* منع تحديد النصوص في الواجهة */
+    -webkit-user-select: none; 
+}
+
+/* بنرجع نسمح بتحديد وكتابة النصوص جوه حقول الإدخال بس */
+input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 /* =========================================
