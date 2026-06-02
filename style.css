@@ -401,3 +401,139 @@ textarea.neo-input { resize: vertical; min-height: 80px; }
     0% { transform: scale(1); }
     100% { transform: scale(1.05); }
 }
+/* =========================================
+   🧘‍♂️ وضع الكهف (Zen Focus Mode) 🧘‍♂️
+   ========================================= */
+.cave-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #000000; /* أسود مطلق لتركيز تام */
+    z-index: 99999;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.8s ease-in-out;
+}
+.cave-overlay.active {
+    opacity: 1; pointer-events: all;
+}
+.cave-content {
+    text-align: center; display: flex; flex-direction: column; align-items: center;
+    transform: scale(0.95); transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.cave-overlay.active .cave-content {
+    transform: scale(1);
+}
+.cave-subtitle {
+    color: #52525b; font-size: 14px; letter-spacing: 2px;
+    margin-bottom: 20px; font-weight: 600;
+}
+.cave-title {
+    color: #fff; font-size: 36px; font-weight: 700; margin: 0 0 50px 0;
+    max-width: 90vw; line-height: 1.5;
+    text-shadow: 0 0 30px rgba(255,255,255,0.15);
+}
+.cave-timer-container {
+    position: relative; width: 260px; height: 260px;
+    display: flex; align-items: center; justify-content: center;
+}
+.cave-timer {
+    font-size: 55px; font-weight: 300; font-family: 'Courier New', monospace; 
+    color: var(--accent); z-index: 2;
+}
+.cave-progress-svg {
+    position: absolute; top: 0; left: 0; transform: rotate(-90deg); z-index: 1;
+}
+#cave-progress-circle {
+    transition: stroke-dashoffset 1s linear;
+}
+/* =========================================
+   🎨 القوائم المنسدلة المخصصة (Custom Select) 
+   ========================================= */
+.custom-select-wrapper {
+    position: relative;
+    user-select: none;
+}
+
+/* الزرار اللي بتدوس عليه */
+.custom-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.custom-select-trigger .arrow {
+    font-size: 10px;
+    transition: transform 0.3s ease;
+}
+.custom-select-wrapper.open .custom-select-trigger .arrow {
+    transform: rotate(180deg);
+}
+
+/* القائمة اللي بتنزل (زجاجية ومضيئة) */
+.custom-options {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: rgba(15, 15, 18, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 15px rgba(79, 172, 254, 0.1);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+}
+
+.custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* الخيارات من جوه */
+.custom-option {
+    padding: 12px 15px;
+    font-size: 12px;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    padding-right: 10px; /* حركة خفيفة لليسار عند التمرير */
+}
+
+.custom-option.selected {
+    background: rgba(79, 172, 254, 0.15);
+    color: var(--accent);
+    font-weight: 600;
+}
+/* =========================================
+   🔧 إصلاح قوائم الفرز في الدليل 🔧
+   ========================================= */
+
+/* 1. منع الكارت من قص القائمة المنسدلة (إلغاء المقص) */
+.demo-sort-item.task-card {
+    overflow: visible !important;
+    z-index: 1;
+}
+
+/* 2. رفع مستوى الكارت النشط عشان القائمة تنزل فوق الكروت اللي تحته وماتستخباش وراهم */
+.demo-sort-item.task-card:focus-within, 
+.demo-sort-item.task-card:hover {
+    z-index: 50 !important;
+}
+
+/* 3. إضافة مساحة سفلية عشان القائمة الأخيرة متتقصش من الكارت الزجاجي الكبير */
+#demo-sort-container {
+    padding-bottom: 130px !important;
+}
